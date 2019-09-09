@@ -57,6 +57,7 @@ static long __estimate_accuracy(struct timespec64 *tv)
 	if (tv->tv_sec < 0)
 		return 0;
 
+    //NOTE current是 task_stuct* 的全局变量
 	if (task_nice(current) > 0)
 		divfactor = divfactor / 5;
 
@@ -80,7 +81,6 @@ u64 select_estimate_accuracy(struct timespec64 *tv)
 	/*
 	 * Realtime tasks get a slack of 0 for obvious reasons.
 	 */
-
 	if (rt_task(current))
 		return 0;
 
@@ -91,8 +91,6 @@ u64 select_estimate_accuracy(struct timespec64 *tv)
 		return current->timer_slack_ns;
 	return ret;
 }
-
-
 
 struct poll_table_page {
 	struct poll_table_page * next;

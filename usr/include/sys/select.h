@@ -57,8 +57,8 @@ typedef long int __fd_mask;
 /* Some versions of <linux/posix_types.h> define this macros.  */
 #undef	__NFDBITS
 /* It's easier to assume 8-bit bytes than to get CHAR_BIT.  */
-#define __NFDBITS	(8 * (int) sizeof (__fd_mask))
-#define	__FD_ELT(d)	((d) / __NFDBITS)
+#define __NFDBITS	(8 * (int) sizeof (__fd_mask)) //NOTE sizeof(long int) = 8, __NFDBITS = 64
+#define	__FD_ELT(d)	((d) / __NFDBITS) //NOTE 和 __FD_MASK 一起配合进行bits数组的位运算
 #define	__FD_MASK(d)	((__fd_mask) 1 << ((d) % __NFDBITS))
 
 /* fd_set for select and pselect.  */
@@ -67,6 +67,8 @@ typedef struct
     /* XPG4.2 requires this member name.  Otherwise avoid the name
        from the global namespace.  */
 #ifdef __USE_XOPEN
+      //NOTE 这里 __FD_SETSIZE = 1024
+      //     这里 fds_bits 一共 1024 / 64 * 8 字节 = 128 字节，因为fd_set是按bit计状态，所以一共1024个状态
     __fd_mask fds_bits[__FD_SETSIZE / __NFDBITS];
 # define __FDS_BITS(set) ((set)->fds_bits)
 #else

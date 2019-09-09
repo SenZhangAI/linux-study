@@ -1542,6 +1542,8 @@ extern int task_prio(const struct task_struct *p);
  */
 static inline int task_nice(const struct task_struct *p)
 {
+    //NOTE int static_prio prio 指 priority
+    //这里讲优先级 划到 -19~20 之间
 	return PRIO_TO_NICE((p)->static_prio);
 }
 
