@@ -670,6 +670,7 @@ int core_sys_select(int n, fd_set __user *inp, fd_set __user *outp,
 	zero_fd_set(n, fds.res_out);
 	zero_fd_set(n, fds.res_ex);
 
+    //NOTE 核心逻辑
 	ret = do_select(n, &fds, end_time);
 
 	if (ret < 0)
@@ -701,6 +702,7 @@ static int kern_select(int n, fd_set __user *inp, fd_set __user *outp,
 	int ret;
 
 	if (tvp) {
+        //NOTE 将timeval从user空间copy到内核空间
 		if (copy_from_user(&tv, tvp, sizeof(tv)))
 			return -EFAULT;
 
@@ -711,6 +713,7 @@ static int kern_select(int n, fd_set __user *inp, fd_set __user *outp,
 			return -EINVAL;
 	}
 
+    //NOTE 重要的逻辑在这里
 	ret = core_sys_select(n, inp, outp, exp, to);
 	ret = poll_select_copy_remaining(&end_time, tvp, PT_TIMEVAL, ret);
 
