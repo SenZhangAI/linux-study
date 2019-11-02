@@ -16,6 +16,8 @@ static __always_inline struct task_struct *get_current(void)
 {
 	unsigned long sp_el0;
 
+    //NOTE Exception Levels（EL）
+    //     EL0 EL1 .. 参见 https://zhuanlan.zhihu.com/p/21258997
 	asm ("mrs %0, sp_el0" : "=r" (sp_el0));
 
 	return (struct task_struct *)sp_el0;

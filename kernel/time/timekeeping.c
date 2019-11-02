@@ -888,7 +888,7 @@ void ktime_get_ts64(struct timespec64 *ts)
 		nsec = timekeeping_get_ns(&tk->tkr_mono);
 		tomono = tk->wall_to_monotonic;
 
-	} while (read_seqcount_retry(&tk_core.seq, seq));
+	} while (read_seqcount_retry(&tk_core.seq, seq)); //NOTE unlikely(tk_core.seq != seq) 时 retry, 有点像乐观锁
 
 	ts->tv_sec += tomono.tv_sec;
 	ts->tv_nsec = 0;

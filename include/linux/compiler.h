@@ -258,6 +258,9 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 		__read_once_size(&(x), __u.__c, sizeof(x));		\
 	else								\
 		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
+    //NOTE smp_read_barrier_depends() 的实现是架构相关的，arm、x86 等架构上是空实现，alpha 上则加了内存屏障，
+    //     以保证流水线不会打乱顺序，后面的指令一定在前面指令之后执行
+    //     只有alpha架构中定义了"mb"指令，用于实现barrier，   // #define read_barrier_depends() __asm__ __volatile__("mb": : :"memory")
 	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
 	__u.__val;							\
 })

@@ -279,7 +279,9 @@ int poll_select_set_timeout(struct timespec64 *to, time64_t sec, long nsec)
 	if (!sec && !nsec) {
 		to->tv_sec = to->tv_nsec = 0;
 	} else {
+        //NOTE 获取当前时间戳
 		ktime_get_ts64(to);
+        //NOTE 获取过期时间戳
 		*to = timespec64_add_safe(*to, ts);
 	}
 	return 0;
@@ -617,12 +619,15 @@ static int do_select(int n, fd_set_bits *fds, struct timespec64 *end_time)
 int core_sys_select(int n, fd_set __user *inp, fd_set __user *outp,
 			   fd_set __user *exp, struct timespec64 *end_time)
 {
+    //NOTE fd_set_bits 结构体包含了in,out,exp以及返回result的in,out,exp指针
 	fd_set_bits fds;
 	void *bits;
 	int ret, max_fds;
 	size_t size, alloc_size;
 	struct fdtable *fdt;
 	/* Allocate small arguments on the stack to save memory and be faster */
+    //NOTE SELECT_STACK_ALLOC = 256
+    //long stack_fds[256/8] = stack_fds[32] = 256个bit
 	long stack_fds[SELECT_STACK_ALLOC/sizeof(long)];
 
 	ret = -EINVAL;
@@ -630,6 +635,15 @@ int core_sys_select(int n, fd_set __user *inp, fd_set __user *outp,
 		goto out_nofds;
 
 	/* max_fds can increase, so grab it once to avoid race */
+    //NOTE RCU(Read-Copy Update)，是 Linux 中比较重要的一种同步机制。顾名思义就是“读，拷贝更新”，
+    //     直白点是“随意读，但更新数据的时候，需要先复制一份副本，在副本上完成修改，再一次性地替换旧数据”。
+    //     这是 Linux 内核实现的一种针对“读多写少”的共享数据的同步机制。
+    //     不同于其他的同步机制，它允许多个读者同时访问共享数据，而且读者的性能不会受影响（“随意读”），
+    //     读者与写者之间也不需要同步机制（但需要“复制后再写”），但如果存在多个写者时，
+    //     在写者把更新后的“副本”覆盖到原数据时，写者与写者之间需要利用其他同步机制保证同步。
+    //
+    //     RCU 的一个典型的应用场景是链表
+    //     rcu_read_lock() 和 rcu_read_unlock()，是 RCU “随意读” 的关键，它们的效果是声明了一个读端的临界区（read-side critical sections）
 	rcu_read_lock();
 	fdt = files_fdtable(current->files);
 	max_fds = fdt->max_fds;
@@ -703,10 +717,12 @@ static int kern_select(int n, fd_set __user *inp, fd_set __user *outp,
 
 	if (tvp) {
         //NOTE 将timeval从user空间copy到内核空间
+        //     这里根据参数类型实现高效的内存拷贝
 		if (copy_from_user(&tv, tvp, sizeof(tv)))
 			return -EFAULT;
 
 		to = &end_time;
+        //NOTE 通过now() + tv 获取过期时间戳
 		if (poll_select_set_timeout(to,
 				tv.tv_sec + (tv.tv_usec / USEC_PER_SEC),
 				(tv.tv_usec % USEC_PER_SEC) * NSEC_PER_USEC))
