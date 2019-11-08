@@ -2826,6 +2826,7 @@ void sk_stop_timer(struct sock *sk, struct timer_list* timer)
 }
 EXPORT_SYMBOL(sk_stop_timer);
 
+//NOTE 从 socket* 初始化 sock*
 void sock_init_data(struct socket *sock, struct sock *sk)
 {
 	sk_init_common(sk);

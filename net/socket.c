@@ -241,7 +241,7 @@ static struct kmem_cache *sock_inode_cachep __ro_after_init;
 static struct inode *sock_alloc_inode(struct super_block *sb)
 {
 	struct socket_alloc *ei;
-	struct socket_wq *wq;
+	struct socket_wq *wq; //NOTE wait queue
 
 	ei = kmem_cache_alloc(sock_inode_cachep, GFP_KERNEL);
 	if (!ei)
@@ -1376,6 +1376,7 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 		family = PF_PACKET;
 	}
 
+    //NOTE 检查socket_create 函数是否授权可以执行
 	err = security_socket_create(family, type, protocol, kern);
 	if (err)
 		return err;
@@ -1385,6 +1386,7 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 	 *	the protocol is 0, the family is instructed to select an appropriate
 	 *	default.
 	 */
+    //NOTE 初始化一个sock和相应inode
 	sock = sock_alloc();
 	if (!sock) {
 		net_warn_ratelimited("socket: no more sockets\n");
@@ -1494,6 +1496,48 @@ int sock_create_kern(struct net *net, int family, int type, int protocol, struct
 }
 EXPORT_SYMBOL(sock_create_kern);
 
+//NOTE see http://man7.org/linux/man-pages/man2/socket.2.html
+// NAME         top
+//
+//        socket - create an endpoint for communication
+// SYNOPSIS         top
+//
+//        #include <sys/types.h>          /* See NOTES */
+//        #include <sys/socket.h>
+//
+//        int socket(int domain, int type, int protocol);
+
+//family 参见 include/linux/socket.h
+//#define AF_INET		2	/* Internet IP Protocol 	*/
+//#define PF_INET		AF_INET
+
+//type 参见 include/linux/net.h
+// enum sock_type {
+// 	SOCK_STREAM	= 1,
+// 	SOCK_DGRAM	= 2,
+// 	SOCK_RAW	= 3,
+// 	SOCK_RDM	= 4,
+// 	SOCK_SEQPACKET	= 5,
+// 	SOCK_DCCP	= 6,
+// 	SOCK_PACKET	= 10,
+// };
+
+//protocol 参见 include/uapi/linux/in.h
+// /* Standard well-defined IP protocols.  */
+// enum {
+//   IPPROTO_IP = 0,		/* Dummy protocol for TCP		*/
+// #define IPPROTO_IP		IPPROTO_IP
+//   IPPROTO_ICMP = 1,		/* Internet Control Message Protocol	*/
+// #define IPPROTO_ICMP		IPPROTO_ICMP
+//   IPPROTO_IGMP = 2,		/* Internet Group Management Protocol	*/
+// #define IPPROTO_IGMP		IPPROTO_IGMP
+//   IPPROTO_IPIP = 4,		/* IPIP tunnels (older KA9Q tunnels use 94) */
+// #define IPPROTO_IPIP		IPPROTO_IPIP
+//   IPPROTO_TCP = 6,		/* Transmission Control Protocol	*/
+// #define IPPROTO_TCP		IPPROTO_TCP
+//   //...
+// }
+
 int __sys_socket(int family, int type, int protocol)
 {
 	int retval;
@@ -1507,6 +1551,7 @@ int __sys_socket(int family, int type, int protocol)
 	BUILD_BUG_ON(SOCK_NONBLOCK & SOCK_TYPE_MASK);
 
 	flags = type & ~SOCK_TYPE_MASK;
+    //NOTE 如果flag中包含除了SOCK_CLOEXEC或者SOCK_NONBLOCK外的其他选项，返回EINVAL
 	if (flags & ~(SOCK_CLOEXEC | SOCK_NONBLOCK))
 		return -EINVAL;
 	type &= SOCK_TYPE_MASK;
@@ -1670,6 +1715,16 @@ SYSCALL_DEFINE3(bind, int, fd, struct sockaddr __user *, umyaddr, int, addrlen)
  *	ready for listening.
  */
 
+//NOTE see http://man7.org/linux/man-pages/man2/listen.2.html
+// NAME         top
+//
+//        listen - listen for connections on a socket
+// SYNOPSIS         top
+//
+//        #include <sys/types.h>          /* See NOTES */
+//        #include <sys/socket.h>
+//
+//        int listen(int sockfd, int backlog);
 int __sys_listen(int fd, int backlog)
 {
 	struct socket *sock;
@@ -1707,6 +1762,23 @@ SYSCALL_DEFINE2(listen, int, fd, int, backlog)
  *	status to recvmsg. We need to add that support in a way thats
  *	clean when we restructure accept also.
  */
+
+//NOTE http://man7.org/linux/man-pages/man2/accept.2.html
+// NAME         top
+//
+//        accept, accept4 - accept a connection on a socket
+// SYNOPSIS         top
+//
+//        #include <sys/types.h>          /* See NOTES */
+//        #include <sys/socket.h>
+//
+//        int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+//
+//        #define _GNU_SOURCE             /* See feature_test_macros(7) */
+//        #include <sys/socket.h>
+//
+//        int accept4(int sockfd, struct sockaddr *addr,
+//                    socklen_t *addrlen, int flags);
 
 int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
 		  int __user *upeer_addrlen, int flags)
@@ -2825,8 +2897,11 @@ SYSCALL_DEFINE2(socketcall, int, call, unsigned long __user *, args)
  *	socket interface. The value ops->family corresponds to the
  *	socket system call protocol family.
  */
+//NOTE sock_create时从net_families中找到对应ops，执行对应的create函数指针
 int sock_register(const struct net_proto_family *ops)
 {
+    //NOTE 就是 net_families[ops->family] = ops
+
 	int err;
 
 	if (ops->family >= NPROTO) {

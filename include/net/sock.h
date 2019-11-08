@@ -116,12 +116,7 @@ typedef __u64 __bitwise __addrpair;
 
 /**
  *	struct sock_common - minimal network layer representation of sockets
- *	@skc_daddr: Foreign IPv4 addr
- *	@skc_rcv_saddr: Bound local IPv4 addr
- *	@skc_hash: hash value used with various protocol lookup tables
  *	@skc_u16hashes: two u16 hash values used by UDP lookup tables
- *	@skc_dport: placeholder for inet_dport/tw_dport
- *	@skc_num: placeholder for inet_num/tw_num
  *	@skc_family: network address family
  *	@skc_state: Connection state
  *	@skc_reuse: %SO_REUSEADDR setting
@@ -150,22 +145,22 @@ struct sock_common {
 	 */
     //NOTE socket 是一个 [源IP:源端口 - 目标IP:目标端口] 四组组成的key，是一个系统唯一的，这样就建立了客户端和服务器的唯一通道
 	union {
-		__addrpair	skc_addrpair;
+		__addrpair	skc_addrpair; //NOTE __u64
 		struct {
-			__be32	skc_daddr;
-			__be32	skc_rcv_saddr;
+			__be32	skc_daddr; //NOTE @skc_daddr: Foreign IPv4 addr
+			__be32	skc_rcv_saddr; //NOTE @skc_rcv_saddr: Bound local IPv4 addr
 		};
 	};
 	union  {
-		unsigned int	skc_hash;
+		unsigned int	skc_hash; //NOTE * @skc_hash: hash value used with various protocol lookup tables
 		__u16		skc_u16hashes[2];
 	};
 	/* skc_dport && skc_num must be grouped as well */
 	union {
 		__portpair	skc_portpair;
 		struct {
-			__be16	skc_dport;
-			__u16	skc_num;
+			__be16	skc_dport; //NOTE @skc_dport: placeholder for inet_dport/tw_dport
+			__u16	skc_num;   //NOTE @skc_num: placeholder for inet_num/tw_num
 		};
 	};
 
@@ -241,13 +236,10 @@ struct bpf_sk_storage;
   *	@sk_userlocks: %SO_SNDBUF and %SO_RCVBUF settings
   *	@sk_lock:	synchronizer
   *	@sk_kern_sock: True if sock is using kernel lock classes
-  *	@sk_rcvbuf: size of receive buffer in bytes
   *	@sk_wq: sock wait queue and async head
-  *	@sk_rx_dst: receive input route used by early demux
   *	@sk_dst_cache: destination cache
   *	@sk_dst_pending_confirm: need to confirm neighbour
   *	@sk_policy: flow policy
-  *	@sk_receive_queue: incoming packets
   *	@sk_wmem_alloc: transmit queue bytes committed
   *	@sk_tsq_flags: TCP Small Queues flags
   *	@sk_write_queue: Packet sending queue
@@ -367,7 +359,16 @@ struct sock {
 	int			sk_rcvlowat;
 	struct sk_buff_head	sk_error_queue;
 	struct sk_buff		*sk_rx_skb_cache;
-	struct sk_buff_head	sk_receive_queue;
+    //NOTE
+    // struct sk_buff_head {
+    //     /* These two members must be first. */
+    //     struct sk_buff	*next;
+    //     struct sk_buff	*prev;
+
+    //     __u32		qlen;
+    //     spinlock_t	lock;
+    // };
+	struct sk_buff_head	sk_receive_queue; //NOTE @sk_receive_queue: incoming packets
 	/*
 	 * The backlog queue is special, it is always used with
 	 * the per-socket spinlock held and requires low latency
@@ -390,7 +391,7 @@ struct sock {
 	/* ===== mostly read cache line ===== */
 	unsigned int		sk_napi_id;
 #endif
-	int			sk_rcvbuf;
+	int			sk_rcvbuf; //NOTE @sk_rcvbuf: size of receive buffer in bytes
 
 	struct sk_filter __rcu	*sk_filter;
 	union {
@@ -400,7 +401,7 @@ struct sock {
 #ifdef CONFIG_XFRM
 	struct xfrm_policy __rcu *sk_policy[2];
 #endif
-	struct dst_entry	*sk_rx_dst;
+	struct dst_entry	*sk_rx_dst; //NOTE @sk_rx_dst: receive input route used by early demux
 	struct dst_entry __rcu	*sk_dst_cache;
 	atomic_t		sk_omem_alloc;
 	int			sk_sndbuf;
