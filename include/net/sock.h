@@ -143,7 +143,6 @@ struct sock_common {
 	/* skc_daddr and skc_rcv_saddr must be grouped on a 8 bytes aligned
 	 * address on 64bit arches : cf INET_MATCH()
 	 */
-    //NOTE socket 是一个 [源IP:源端口 - 目标IP:目标端口] 四组组成的key，是一个系统唯一的，这样就建立了客户端和服务器的唯一通道
 	union {
 		__addrpair	skc_addrpair; //NOTE __u64
 		struct {
